@@ -10,6 +10,26 @@ st.set_page_config(
     layout="centered",
 )
 
+# ── パスワード認証 ──────────────────────────────────────────
+def check_password():
+    correct = os.getenv("APP_PASSWORD", "")
+    if not correct:
+        return True  # パスワード未設定なら認証スキップ
+    if st.session_state.get("authenticated"):
+        return True
+    st.markdown("## 🔐 ログイン")
+    pw = st.text_input("パスワードを入力", type="password")
+    if st.button("ログイン"):
+        if pw == correct:
+            st.session_state["authenticated"] = True
+            st.rerun()
+        else:
+            st.error("パスワードが違います")
+    return False
+
+if not check_password():
+    st.stop()
+
 # ── グローバル CSS ──────────────────────────────────────────
 st.markdown("""
 <style>
