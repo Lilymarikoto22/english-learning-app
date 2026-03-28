@@ -187,16 +187,16 @@ st.markdown(render_calendar_html(num_months=3), unsafe_allow_html=True)
 st.markdown("---")
 st.markdown("### 学習メニュー")
 
-cols = st.columns(3)
 menus = [
-    ("💬", "Conversation", "AIと英会話練習"),
-    ("📚", "Vocabulary", "単語帳・フラッシュカード"),
-    ("🗞️", "Shadowing", "ニュース記事でシャドウイング"),
-    ("🎭", "Dialogue", "British Englishフレーズ学習"),
+    ("📚", "Vocabulary",    "単語帳・フラッシュカード",      "pages/2_Vocabulary.py"),
+    ("🗞️", "Shadowing",    "ニュース記事でシャドウイング",   "pages/3_Shadowing.py"),
+    ("🎭", "Dialogue",      "British Englishフレーズ学習",   "pages/4_Dialogue.py"),
+    ("💬", "Conversation",  "AIと英会話練習",                "pages/5_Conversation.py"),
 ]
 
-for i, (icon, name, desc) in enumerate(menus):
-    with cols[i % 3]:
+cols = st.columns(2)
+for i, (icon, name, desc, page) in enumerate(menus):
+    with cols[i % 2]:
         st.markdown(f"""
         <div class="card" style="text-align:center; min-height:90px;">
           <div style="font-size:1.8em;">{icon}</div>
@@ -204,6 +204,7 @@ for i, (icon, name, desc) in enumerate(menus):
           <div style="font-size:0.75em; color:#64748b; margin-top:4px;">{desc}</div>
         </div>
         """, unsafe_allow_html=True)
+        st.page_link(page, label=f"{name} を開く →", use_container_width=True)
 
 st.markdown("---")
 
