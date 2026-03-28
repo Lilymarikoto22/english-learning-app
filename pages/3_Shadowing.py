@@ -95,16 +95,15 @@ def show_article_player(article: dict, key_prefix: str = "") -> None:
         if st.button("🔊 この速度で音声を再生成", type="primary", key=f"gen_{p}"):
             with st.spinner("音声を生成中..."):
                 try:
-                    path = generate_audio(article["text"], speed=speed)
-                    st.session_state[audio_key] = path
+                    audio_bytes = generate_audio(article["text"], speed=speed)
+                    st.session_state[audio_key] = audio_bytes
                     st.session_state[speed_key] = speed
                     st.rerun()
                 except Exception as e:
                     st.error(f"音声の生成に失敗しました: {e}")
 
-    if audio_key in st.session_state and os.path.exists(st.session_state[audio_key]):
-        with open(st.session_state[audio_key], "rb") as f:
-            st.audio(f.read(), format="audio/mp3")
+    if audio_key in st.session_state and st.session_state[audio_key]:
+        st.audio(st.session_state[audio_key], format="audio/mpeg")
 
         st.markdown("""
         **シャドウイングのやり方：**
@@ -283,8 +282,8 @@ with tab_new:
         audio_key = f"audio_{article['title'][:20]}"
         with st.spinner("音声を自動生成中..."):
             try:
-                path = generate_audio(article["text"], speed=1.0)
-                st.session_state[audio_key] = path
+                audio_bytes = generate_audio(article["text"], speed=1.0)
+                st.session_state[audio_key] = audio_bytes
                 st.session_state[f"speed_cache_{article['title'][:20]}"] = 1.0
             except Exception as e:
                 st.warning(f"音声の自動生成に失敗しました（後で手動生成できます）: {e}")

@@ -148,17 +148,16 @@ def show_dialogue(data: dict, key_prefix: str = "") -> None:
         with st.spinner("Generating two-voice audio... (may take 20–30 seconds)"):
             try:
                 lines = [{"speaker": l["speaker"], "line": l["line"]} for l in data["dialogue"]]
-                path = generate_dialogue_audio(lines, speed=speed)
-                st.session_state[audio_key] = path
+                audio_bytes = generate_dialogue_audio(lines, speed=speed)
+                st.session_state[audio_key] = audio_bytes
                 st.session_state[audio_speed_key] = speed
             except Exception as e:
                 st.error(f"Audio generation failed: {e}")
 
-    if st.session_state.get(audio_key) and os.path.exists(st.session_state[audio_key]):
+    if st.session_state.get(audio_key):
         if st.session_state.get(audio_speed_key) != speed:
             st.info("Speed changed — press 'Generate audio' again.")
-        with open(st.session_state[audio_key], "rb") as f:
-            st.audio(f.read(), format="audio/mp3")
+        st.audio(st.session_state[audio_key], format="audio/mpeg")
         st.caption("🟢 Sophie (female) · 🔵 James (male) — both in British English")
 
 
