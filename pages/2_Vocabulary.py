@@ -285,152 +285,186 @@ with tab_list:
 with tab_battle:
 
     COURSE_OPTIONS = ["初級", "中級", "上級"]
-    MONSTER_IMAGES = {
-        "初級": "assets/fantasy_game_character_slime.png",
-        "中級": "assets/fantasy_goblin.png",
-        "上級": "assets/dragon_fire4_yellow.png",
-    }
     HERO_IMAGE = "assets/yuusya_game.png"
+    MONSTERS = [
+        {"name": "スライム", "img": "assets/fantasy_game_character_slime.png", "emoji": "🟢"},
+        {"name": "ゴブリン", "img": "assets/fantasy_goblin.png",               "emoji": "👺"},
+        {"name": "オーク",   "img": "assets/fantasy_orc.png",                  "emoji": "💚"},
+        {"name": "ドラゴン", "img": "assets/dragon_fire4_yellow.png",          "emoji": "🐉"},
+    ]
+    TOTAL_Q = 20
+    Q_PER_MONSTER = 5   # 4体 × 5問
+    PLAYER_HP = 5
 
     def _short_def(definition: str) -> str:
-        """'日本語の意味 / example sentence' から日本語部分だけ返す。"""
         return definition.split("/")[0].strip()
 
     def build_questions(words: list[dict]) -> list[dict]:
         pool = [w for w in words if w.get("word") and w.get("definition")]
         if len(pool) < 3:
             return []
-        selected = random.sample(pool, min(10, len(pool)))
+        # 単語6:熟語4 の配分
+        idioms    = [w for w in pool if w.get("pos") == "熟語"]
+        non_idioms = [w for w in pool if w.get("pos") != "熟語"]
+        n_idiom = min(8, len(idioms))
+        n_word  = min(TOTAL_Q - n_idiom, len(non_idioms))
+        selected = (random.sample(non_idioms, n_word) +
+                    (random.sample(idioms, n_idiom) if n_idiom else []))
+        random.shuffle(selected)
+        selected = selected[:TOTAL_Q]
+
         questions = []
         for i, w in enumerate(selected):
             q_type = "word2def" if i % 2 == 0 else "def2word"
             wrong_pool = [x for x in pool if x["id"] != w["id"]]
-            wrongs = random.sample(wrong_pool, min(2, len(wrong_pool)))
-            if len(wrongs) < 2:
+            if len(wrong_pool) < 2:
                 continue
+            wrongs = random.sample(wrong_pool, 2)
             if q_type == "word2def":
                 choices = [_short_def(w["definition"])] + [_short_def(x["definition"]) for x in wrongs]
             else:
                 choices = [w["word"]] + [x["word"] for x in wrongs]
             random.shuffle(choices)
             correct = _short_def(w["definition"]) if q_type == "word2def" else w["word"]
-            answer_idx = choices.index(correct)
             questions.append({
                 "word": w["word"],
                 "definition": _short_def(w["definition"]),
                 "q_type": q_type,
                 "choices": choices,
-                "answer_idx": answer_idx,
+                "answer_idx": choices.index(correct),
             })
-        return questions[:10]
+        return questions[:TOTAL_Q]
 
     def reset_battle():
         for k in ["bq_questions", "bq_current", "bq_score", "bq_hp",
-                  "bq_wrong", "bq_phase", "bq_last_correct", "bq_feedback", "bq_exp_granted"]:
+                  "bq_wrong", "bq_phase", "bq_feedback", "bq_exp_granted", "bq_monster_idx"]:
             st.session_state.pop(k, None)
 
-    # ── フェーズ: コース選択 ──
-    if st.session_state.get("bq_phase") not in ("playing", "result"):
+    phase = st.session_state.get("bq_phase", "select")
+
+    # ── フェーズ: コース選択 ──────────────────────────────────
+    if phase == "select":
         st.subheader("⚔️ バトルクイズ")
-        st.markdown("単語の力で敵モンスターを倒せ！**7問正解**でコースクリア。")
+        st.markdown("4体のモンスターを倒せ！各5問、合計20問。HPを守り切ってクリアしよう。")
 
         course = st.selectbox("コースを選ぶ", COURSE_OPTIONS, key="bq_course_select")
         course_words = get_words_by_level(course)
-
         st.markdown(f"**{course}コース**の単語: {len(course_words)} 語")
-        if len(course_words) < 3:
-            st.warning(f"⚠️ {course}コースの単語が少なすぎます（最低3語必要）。単語を追加してからチャレンジしてください！")
+
+        if len(course_words) < 10:
+            st.warning("単語が少なすぎます（最低10語必要）。")
         else:
             if st.button("🗡️ バトル開始！", type="primary", use_container_width=True):
                 questions = build_questions(course_words)
                 if not questions:
                     st.error("問題を生成できませんでした。")
                 else:
-                    st.session_state["bq_questions"] = questions
-                    st.session_state["bq_current"] = 0
-                    st.session_state["bq_score"] = 0
-                    st.session_state["bq_hp"] = 3
-                    st.session_state["bq_wrong"] = []
-                    st.session_state["bq_phase"] = "playing"
-                    st.session_state["bq_last_correct"] = None
-                    st.session_state["bq_feedback"] = ""
-                    st.session_state["bq_selected_course"] = course
+                    st.session_state.update({
+                        "bq_questions": questions,
+                        "bq_current": 0,
+                        "bq_score": 0,
+                        "bq_hp": PLAYER_HP,
+                        "bq_wrong": [],
+                        "bq_phase": "playing",
+                        "bq_feedback": "",
+                        "bq_monster_idx": 0,
+                        "bq_selected_course": course,
+                    })
                     st.rerun()
 
-    # ── フェーズ: プレイ中 ──
-    elif st.session_state.get("bq_phase") == "playing":
-        questions = st.session_state["bq_questions"]
-        current = st.session_state["bq_current"]
-        score = st.session_state["bq_score"]
-        hp = st.session_state["bq_hp"]
-        course = st.session_state.get("bq_selected_course", "初級")
-
-        # HP と進捗
-        hearts = "❤️" * hp + "🖤" * (3 - hp)
+    # ── フェーズ: モンスター撃破トランジション ────────────────
+    elif phase == "monster_clear":
+        defeated = MONSTERS[st.session_state.get("bq_monster_idx", 0) - 1]
+        next_mon = MONSTERS[st.session_state.get("bq_monster_idx", 0)]
         st.markdown(
-            f"""
-            <div style="display:flex; justify-content:space-between; align-items:center;
-                        background:#fff; border:1px solid #bfdbfe; border-radius:10px;
-                        padding:10px 16px; margin-bottom:12px;">
-                <div style="font-size:1.4em;">{hearts}</div>
-                <div style="color:#64748b; font-size:0.9em;">問題 {current + 1} / {len(questions)}</div>
-                <div style="color:#16a34a; font-weight:bold;">✅ {score}問正解</div>
-            </div>
-            """,
+            f"""<div style="background:linear-gradient(135deg,#dcfce7,#bbf7d0);
+                            border:2px solid #22c55e; border-radius:16px;
+                            padding:24px; text-align:center; margin:12px 0;">
+                <div style="font-size:2.5em;">⚔️✨</div>
+                <div style="font-size:1.5em; font-weight:bold; color:#15803d; margin:8px 0;">
+                    {defeated['name']}を倒した！
+                </div>
+            </div>""",
+            unsafe_allow_html=True,
+        )
+        hearts = "❤️" * st.session_state["bq_hp"] + "🖤" * (PLAYER_HP - st.session_state["bq_hp"])
+        st.markdown(f"現在のHP: {hearts}")
+        st.markdown(f"### 次の敵: {next_mon['emoji']} **{next_mon['name']}**")
+        if os.path.exists(next_mon["img"]):
+            st.image(next_mon["img"], width=120)
+        if st.button(f"🗡️ {next_mon['name']}と戦う！", type="primary", use_container_width=True):
+            st.session_state["bq_phase"] = "playing"
+            st.session_state["bq_feedback"] = ""
+            st.rerun()
+
+    # ── フェーズ: プレイ中 ───────────────────────────────────
+    elif phase == "playing":
+        questions   = st.session_state["bq_questions"]
+        current     = st.session_state["bq_current"]
+        score       = st.session_state["bq_score"]
+        hp          = st.session_state["bq_hp"]
+        monster_idx = st.session_state.get("bq_monster_idx", 0)
+        monster     = MONSTERS[monster_idx]
+        q_in_monster = current % Q_PER_MONSTER  # 0-4
+
+        # ステータスバー
+        hearts = "❤️" * hp + "🖤" * (PLAYER_HP - hp)
+        st.markdown(
+            f"""<div style="display:flex; justify-content:space-between; align-items:center;
+                            background:#fff; border:1px solid #bfdbfe; border-radius:10px;
+                            padding:10px 16px; margin-bottom:8px;">
+                <div style="font-size:1.2em;">{hearts}</div>
+                <div style="color:#64748b; font-size:0.85em;">
+                    {monster['emoji']} {monster['name']}（{monster_idx+1}/4体目）
+                    問題 {q_in_monster+1}/{Q_PER_MONSTER}
+                </div>
+                <div style="color:#16a34a; font-weight:bold;">✅ {score}問</div>
+            </div>""",
             unsafe_allow_html=True,
         )
 
         # バトル画面
-        monster_img = MONSTER_IMAGES.get(course, "assets/monster_easy.png")
         col_hero, col_vs, col_mon = st.columns([2, 1, 2])
         with col_hero:
             if os.path.exists(HERO_IMAGE):
-                st.image(HERO_IMAGE, width=120)
+                st.image(HERO_IMAGE, width=110)
             else:
-                st.markdown("<div style='font-size:4em; text-align:center;'>🧒</div>", unsafe_allow_html=True)
-            st.markdown("<div style='text-align:center; font-size:0.8em; color:#64748b;'>プレイヤー</div>", unsafe_allow_html=True)
+                st.markdown("<div style='font-size:4em;text-align:center;'>🧒</div>", unsafe_allow_html=True)
+            st.markdown("<div style='text-align:center;font-size:0.8em;color:#64748b;'>プレイヤー</div>", unsafe_allow_html=True)
 
         with col_vs:
-            # 直前の結果フィードバック
-            feedback = st.session_state.get("bq_feedback", "")
-            if feedback:
-                st.markdown(f"<div style='text-align:center; font-size:1.4em; margin-top:30px;'>{feedback}</div>", unsafe_allow_html=True)
-            else:
-                st.markdown("<div style='text-align:center; font-size:1.8em; margin-top:30px;'>⚔️</div>", unsafe_allow_html=True)
+            fb = st.session_state.get("bq_feedback", "")
+            icon = fb if fb else "⚔️"
+            st.markdown(f"<div style='text-align:center;font-size:1.6em;margin-top:28px;'>{icon}</div>", unsafe_allow_html=True)
 
         with col_mon:
-            if os.path.exists(monster_img):
-                st.image(monster_img, width=120)
+            if os.path.exists(monster["img"]):
+                st.image(monster["img"], width=110)
             else:
-                st.markdown("<div style='font-size:4em; text-align:center;'>👾</div>", unsafe_allow_html=True)
-            st.markdown("<div style='text-align:center; font-size:0.8em; color:#64748b;'>モンスター</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:4em;text-align:center;'>{monster['emoji']}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align:center;font-size:0.8em;color:#64748b;'>{monster['name']}</div>", unsafe_allow_html=True)
 
         st.markdown("---")
 
         # 問題
         q = questions[current]
         if q["q_type"] == "word2def":
-            st.markdown(f"### この単語の意味は？")
+            st.markdown("### この単語の意味は？")
             st.markdown(
-                f"""<div style="background:#dbeafe; border-radius:10px; padding:16px 24px;
-                              text-align:center; font-size:1.6em; font-weight:bold;
-                              color:#1e3a8a; margin:12px 0;">
-                    {q['word']}
-                </div>""",
+                f"""<div style="background:#dbeafe;border-radius:10px;padding:16px 24px;
+                              text-align:center;font-size:1.6em;font-weight:bold;
+                              color:#1e3a8a;margin:12px 0;">{q['word']}</div>""",
                 unsafe_allow_html=True,
             )
         else:
-            st.markdown(f"### この意味の英単語は？")
+            st.markdown("### この意味の英単語・熟語は？")
             st.markdown(
-                f"""<div style="background:#dcfce7; border-radius:10px; padding:16px 24px;
-                              text-align:center; font-size:1.1em;
-                              color:#14532d; margin:12px 0;">
-                    {q['definition']}
-                </div>""",
+                f"""<div style="background:#dcfce7;border-radius:10px;padding:16px 24px;
+                              text-align:center;font-size:1.1em;
+                              color:#14532d;margin:12px 0;">{q['definition']}</div>""",
                 unsafe_allow_html=True,
             )
 
-        # 選択肢ボタン
         for ci, choice in enumerate(q["choices"]):
             if st.button(f"{'①②③'[ci]}  {choice}", key=f"choice_{current}_{ci}", use_container_width=True):
                 correct = (ci == q["answer_idx"])
@@ -443,24 +477,28 @@ with tab_battle:
                     st.session_state["bq_feedback"] = "💥 ダメージ！"
 
                 next_q = current + 1
-                # ゲームオーバー判定
                 if st.session_state["bq_hp"] <= 0:
                     st.session_state["bq_phase"] = "result"
                     st.session_state["bq_feedback"] = ""
                 elif next_q >= len(questions):
                     st.session_state["bq_phase"] = "result"
                     st.session_state["bq_feedback"] = ""
+                elif next_q % Q_PER_MONSTER == 0:
+                    # モンスター撃破
+                    st.session_state["bq_monster_idx"] = monster_idx + 1
+                    st.session_state["bq_current"] = next_q
+                    st.session_state["bq_phase"] = "monster_clear"
                 else:
                     st.session_state["bq_current"] = next_q
                 st.rerun()
 
-    # ── フェーズ: 結果 ──
-    elif st.session_state.get("bq_phase") == "result":
-        score = st.session_state["bq_score"]
-        hp = st.session_state["bq_hp"]
-        wrong = st.session_state["bq_wrong"]
-        total = len(st.session_state["bq_questions"])
-        cleared = score >= 7 and hp > 0
+    # ── フェーズ: 結果 ───────────────────────────────────────
+    elif phase == "result":
+        score  = st.session_state["bq_score"]
+        hp     = st.session_state["bq_hp"]
+        wrong  = st.session_state["bq_wrong"]
+        total  = len(st.session_state["bq_questions"])
+        cleared = hp > 0
 
         if not st.session_state.get("bq_exp_granted"):
             grant_exp(30 if cleared else 10)
@@ -468,50 +506,44 @@ with tab_battle:
 
         if cleared:
             st.markdown(
-                f"""
-                <div style="background:linear-gradient(135deg,#dcfce7,#bbf7d0);
-                            border:2px solid #22c55e; border-radius:16px;
-                            padding:28px; text-align:center; margin:12px 0;">
+                f"""<div style="background:linear-gradient(135deg,#dcfce7,#bbf7d0);
+                                border:2px solid #22c55e;border-radius:16px;
+                                padding:28px;text-align:center;margin:12px 0;">
                     <div style="font-size:3em;">🏆</div>
-                    <div style="font-size:1.8em; font-weight:bold; color:#15803d; margin:8px 0;">コースクリア！</div>
-                    <div style="font-size:1.1em; color:#166534;">{total}問中 {score}問正解！</div>
-                </div>
-                """,
+                    <div style="font-size:1.8em;font-weight:bold;color:#15803d;margin:8px 0;">
+                        4体全員撃破！クリア！
+                    </div>
+                    <div style="font-size:1.1em;color:#166534;">{total}問中 {score}問正解！</div>
+                </div>""",
                 unsafe_allow_html=True,
             )
             st.balloons()
         else:
-            reason = "HPがなくなりました…" if hp <= 0 else "あと少し！"
             st.markdown(
-                f"""
-                <div style="background:linear-gradient(135deg,#fee2e2,#fecaca);
-                            border:2px solid #ef4444; border-radius:16px;
-                            padding:28px; text-align:center; margin:12px 0;">
+                f"""<div style="background:linear-gradient(135deg,#fee2e2,#fecaca);
+                                border:2px solid #ef4444;border-radius:16px;
+                                padding:28px;text-align:center;margin:12px 0;">
                     <div style="font-size:3em;">💀</div>
-                    <div style="font-size:1.8em; font-weight:bold; color:#b91c1c; margin:8px 0;">ゲームオーバー</div>
-                    <div style="font-size:1.1em; color:#991b1b;">{reason}　{total}問中 {score}問正解</div>
-                </div>
-                """,
+                    <div style="font-size:1.8em;font-weight:bold;color:#b91c1c;margin:8px 0;">ゲームオーバー</div>
+                    <div style="font-size:1.1em;color:#991b1b;">HPがなくなりました… {total}問中 {score}問正解</div>
+                </div>""",
                 unsafe_allow_html=True,
             )
 
-        # 間違えた単語の復習
         if wrong:
             st.markdown("---")
             st.subheader(f"📝 間違えた単語（{len(wrong)}語）")
             for w in wrong:
                 st.markdown(
-                    f"""
-                    <div style="background:#fff; border:1px solid #fca5a5; border-radius:8px;
-                                padding:12px 16px; margin:6px 0;">
-                        <b style="color:#1e3a8a; font-size:1.1em;">{w['word']}</b>
-                        <span style="color:#64748b; margin-left:12px;">{w['definition']}</span>
-                    </div>
-                    """,
+                    f"""<div style="background:#fff;border:1px solid #fca5a5;border-radius:8px;
+                                    padding:12px 16px;margin:6px 0;">
+                        <b style="color:#1e3a8a;font-size:1.1em;">{w['word']}</b>
+                        <span style="color:#64748b;margin-left:12px;">{w['definition']}</span>
+                    </div>""",
                     unsafe_allow_html=True,
                 )
         else:
-            st.success("全問正解！間違いなし！🎉")
+            st.success("全問正解！パーフェクト！🎉")
 
         st.markdown("---")
         if st.button("🔄 もう一度チャレンジ", type="primary", use_container_width=True):
