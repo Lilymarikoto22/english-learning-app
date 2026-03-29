@@ -41,6 +41,9 @@ tab_save, tab_recommend, tab_review, tab_list, tab_battle = st.tabs([
     "➕ 単語を追加", "✨ おすすめ単語・熟語", "🃏 フラッシュカード", "📋 単語一覧", "⚔️ バトルクイズ"
 ])
 
+# 全単語を1回だけ取得してタブ間で共有
+all_words = _cached_all_words()
+
 
 # ---- タブ1: 単語を追加 ----
 with tab_save:
@@ -129,7 +132,7 @@ with tab_recommend:
 # ---- タブ3: フラッシュカード ----
 with tab_review:
     st.subheader("フラッシュカードで復習")
-    words = _cached_all_words()
+    words = all_words
 
     if not words:
         st.info("まだ単語が保存されていません。「単語を追加」タブから追加してください。")
@@ -217,7 +220,7 @@ with tab_review:
 # ---- タブ4: 単語一覧 ----
 with tab_list:
     st.subheader("保存した単語一覧")
-    words = _cached_all_words()
+    words = all_words
 
     if not words:
         st.info("まだ単語が保存されていません。")
