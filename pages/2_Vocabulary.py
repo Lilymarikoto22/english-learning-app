@@ -27,6 +27,16 @@ except ValueError as e:
 LEVELS = ["", "初級", "中級", "上級"]
 LEVEL_LABELS = {"": "なし", "初級": "初級", "中級": "中級", "上級": "上級"}
 
+
+@st.cache_data(ttl=60, show_spinner=False)
+def _cached_all_words():
+    return get_all_words()
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def _cached_words_by_level(level: str):
+    return get_words_by_level(level)
+
 tab_save, tab_recommend, tab_review, tab_list, tab_battle = st.tabs([
     "➕ 単語を追加", "✨ おすすめ単語・熟語", "🃏 フラッシュカード", "📋 単語一覧", "⚔️ バトルクイズ"
 ])
@@ -63,6 +73,8 @@ with tab_save:
             add_word(new_word, new_definition, level=level_val,
                      pos=new_pos, verb_type=new_verb_type, pronunciation=new_pronunciation,
                      toeic_target=toeic_val)
+            _cached_all_words.clear()
+            _cached_words_by_level.clear()
             st.success(f"「{new_word}」を保存しました！")
         else:
             st.warning("単語と意味の両方を入力してください。")
@@ -107,6 +119,8 @@ with tab_recommend:
                          pos=w.get("pos", ""), verb_type=w.get("verb_type", ""),
                          pronunciation=w.get("pronunciation", ""),
                          toeic_target=w.get("toeic_target", ""))
+            _cached_all_words.clear()
+            _cached_words_by_level.clear()
             st.success(f"✅ {len(selected_words)} 語を単語帳に追加しました！（レベル: {rec_level}）")
             del st.session_state["recommended_words"]
             st.rerun()
@@ -115,7 +129,7 @@ with tab_recommend:
 # ---- タブ3: フラッシュカード ----
 with tab_review:
     st.subheader("フラッシュカードで復習")
-    words = get_all_words()
+    words = _cached_all_words()
 
     if not words:
         st.info("まだ単語が保存されていません。「単語を追加」タブから追加してください。")
@@ -203,7 +217,7 @@ with tab_review:
 # ---- タブ4: 単語一覧 ----
 with tab_list:
     st.subheader("保存した単語一覧")
-    words = get_all_words()
+    words = _cached_all_words()
 
     if not words:
         st.info("まだ単語が保存されていません。")
@@ -278,6 +292,8 @@ with tab_list:
                     orig_idx = words.index(w)
                     if st.button("削除", key=f"del_{i}"):
                         delete_word(orig_idx)
+                        _cached_all_words.clear()
+                        _cached_words_by_level.clear()
                         st.rerun()
 
 
@@ -348,7 +364,7 @@ with tab_battle:
         st.markdown("4体のモンスターを倒せ！各5問、合計20問。HPを守り切ってクリアしよう。")
 
         course = st.selectbox("コースを選ぶ", COURSE_OPTIONS, key="bq_course_select")
-        course_words = get_words_by_level(course)
+        course_words = _cached_words_by_level(course)
         st.markdown(f"**{course}コース**の単語: {len(course_words)} 語")
 
         if len(course_words) < 10:
