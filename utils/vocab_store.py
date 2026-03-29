@@ -1,4 +1,3 @@
-from datetime import date
 from utils.supabase_client import get_client
 
 
@@ -8,12 +7,23 @@ def get_all_words() -> list[dict]:
     return res.data or []
 
 
-def add_word(word: str, definition: str = "") -> None:
+def get_words_by_level(level: str) -> list[dict]:
+    """指定レベルの単語を返す。level='' なら全単語。"""
+    sb = get_client()
+    if level:
+        res = sb.table("vocabulary").select("*").eq("level", level).order("created_at", desc=False).execute()
+    else:
+        res = sb.table("vocabulary").select("*").order("created_at", desc=False).execute()
+    return res.data or []
+
+
+def add_word(word: str, definition: str = "", level: str = "") -> None:
     sb = get_client()
     sb.table("vocabulary").insert({
         "word": word.strip(),
         "definition": definition.strip(),
         "review_count": 0,
+        "level": level,
     }).execute()
 
 
