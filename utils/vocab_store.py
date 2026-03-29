@@ -3,7 +3,7 @@ from utils.supabase_client import get_client
 
 def get_all_words() -> list[dict]:
     sb = get_client()
-    res = sb.table("vocabulary").select("*").order("created_at", desc=False).execute()
+    res = sb.table("vocabulary").select("*").order("created_at", desc=False).limit(9999).execute()
     return res.data or []
 
 
@@ -11,9 +11,9 @@ def get_words_by_level(level: str) -> list[dict]:
     """指定レベルの単語を返す。level='' なら全単語。"""
     sb = get_client()
     if level:
-        res = sb.table("vocabulary").select("*").eq("level", level).order("created_at", desc=False).execute()
+        res = sb.table("vocabulary").select("*").eq("level", level).order("created_at", desc=False).limit(9999).execute()
     else:
-        res = sb.table("vocabulary").select("*").order("created_at", desc=False).execute()
+        res = sb.table("vocabulary").select("*").order("created_at", desc=False).limit(9999).execute()
     return res.data or []
 
 
