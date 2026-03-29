@@ -1,47 +1,31 @@
-import json
-import os
 from datetime import date
-
-VOCAB_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "vocabulary.json")
-
-
-def _load() -> list[dict]:
-    if not os.path.exists(VOCAB_FILE):
-        return []
-    with open(VOCAB_FILE, encoding="utf-8") as f:
-        return json.load(f)
-
-
-def _save(words: list[dict]) -> None:
-    os.makedirs(os.path.dirname(VOCAB_FILE), exist_ok=True)
-    with open(VOCAB_FILE, "w", encoding="utf-8") as f:
-        json.dump(words, f, ensure_ascii=False, indent=2)
+from utils.supabase_client import get_client
 
 
 def get_all_words() -> list[dict]:
-    return _load()
+    sb = get_client()
+    res = sb.table("vocabulary").select("*").order("created_at", desc=False).execute()
+    return res.data or []
 
 
-def add_word(word: str, definition: str) -> None:
-    words = _load()
-    words.append({
+def add_word(word: str, definition: str = "") -> None:
+    sb = get_client()
+    sb.table("vocabulary").insert({
         "word": word.strip(),
         "definition": definition.strip(),
-        "added": str(date.today()),
         "review_count": 0,
-    })
-    _save(words)
+    }).execute()
 
 
 def update_review_count(index: int, increment: int) -> None:
-    words = _load()
+    words = get_all_words()
     if 0 <= index < len(words):
-        words[index]["review_count"] = max(0, words[index]["review_count"] + increment)
-        _save(words)
+        w = words[index]
+        new_count = max(0, w.get("review_count", 0) + increment)
+        get_client().table("vocabulary").update({"review_count": new_count}).eq("id", w["id"]).execute()
 
 
 def delete_word(index: int) -> None:
-    words = _load()
+    words = get_all_words()
     if 0 <= index < len(words):
-        words.pop(index)
-        _save(words)
+        get_client().table("vocabulary").delete().eq("id", words[index]["id"]).execute()

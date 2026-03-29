@@ -1,0 +1,8 @@
+=== Daily dialogue generation start ===
+FAILED: 'cp932' codec can't encode character '\U0001f3b2' in position 12: illegal multibyte sequence
+FAILED: 'cp932' codec can't encode character '\U0001f4bc' in position 12: illegal multibyte sequence
+FAILED: 'cp932' codec can't encode character '\u2708' in position 12: illegal multibyte sequence
+FAILED: 'cp932' codec can't encode character '\U0001f4ac' in position 12: illegal multibyte sequence
+FAILED: 'cp932' codec can't encode character '\U0001f60a' in position 12: illegal multibyte sequence
+FAILED: 'cp932' codec can't encode character '\U0001f5d3' in position 12: illegal multibyte sequence
+=== Done: 0/6 generated ===
