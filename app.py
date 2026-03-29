@@ -198,7 +198,7 @@ with _col_pet:
         st.session_state["_pet_msg"] = _random.choice(_REACTIONS)
 
 with _col_info:
-    st.markdown(f"**{_info['name']}**　Stage {_stage} / 6")
+    st.markdown(f"**{_info['name']}**")
     _today_label = "🌙 今日はおなかいっぱい！また明日ね" if _is_full else f"今日: {_today_exp} / {DAILY_CAP} pt"
     st.markdown(f"<small style='color:#64748b;'>{_today_label}</small>", unsafe_allow_html=True)
     st.progress(_today_pct)
