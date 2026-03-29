@@ -245,20 +245,37 @@ st.markdown("---")
 st.markdown("### 学習メニュー")
 
 menus = [
-    ("📚", "Vocabulary",    "単語帳・フラッシュカード",      "pages/2_Vocabulary.py"),
-    ("🗞️", "Shadowing",    "ニュース記事でシャドウイング",   "pages/3_Shadowing.py"),
-    ("🎭", "Dialogue",      "British Englishフレーズ学習",   "pages/4_Dialogue.py"),
-    ("💬", "Conversation",  "AIと英会話練習",                "pages/5_Conversation.py"),
+    (
+        "📚", "Vocabulary", "pages/2_Vocabulary.py",
+        "単語・熟語を保存して学習",
+        "レベル別に単語を登録。フラッシュカードで復習したり、3択クイズのバトルゲームで実力試し。TOEICスコア別の優先度も設定できます。",
+    ),
+    (
+        "🗣️", "Shadowing", "pages/3_Shadowing.py",
+        "ニュース英語でリスニング強化",
+        "BBCニュースやTEDトークをもとにClaudeが記事を生成。ネイティブ音声を聴きながらシャドウイング練習ができます。",
+    ),
+    (
+        "🎭", "Dialogue", "pages/4_Dialogue.py",
+        "British Englishのフレーズ学習",
+        "毎回ひとつのフレーズを深掘り。イギリス英語の自然な会話ダイアログで、使える表現をまるごと身につけます。",
+    ),
+    (
+        "💬", "Conversation", "pages/5_Conversation.py",
+        "AIと自由に英会話練習",
+        "Claudeが会話相手。テキストまたは音声で話しかけると、文法ミスをやさしく指摘しながら会話を続けてくれます。",
+    ),
 ]
 
 cols = st.columns(2)
-for i, (icon, name, desc, page) in enumerate(menus):
+for i, (icon, name, page, tagline, detail) in enumerate(menus):
     with cols[i % 2]:
         st.markdown(f"""
-        <div class="card" style="text-align:center; min-height:90px;">
+        <div class="card" style="min-height:160px;">
           <div style="font-size:1.8em;">{icon}</div>
-          <div style="font-weight:bold; color:#1e293b;">{name}</div>
-          <div style="font-size:0.75em; color:#64748b; margin-top:4px;">{desc}</div>
+          <div style="font-weight:bold; color:#1e293b; font-size:1.05em; margin:4px 0;">{name}</div>
+          <div style="font-size:0.8em; font-weight:600; color:#2563eb; margin-bottom:6px;">{tagline}</div>
+          <div style="font-size:0.75em; color:#64748b; line-height:1.6;">{detail}</div>
         </div>
         """, unsafe_allow_html=True)
         st.page_link(page, label=f"{name} を開く →", use_container_width=True)
