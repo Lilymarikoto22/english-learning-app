@@ -5,9 +5,11 @@ from utils.tts import generate_dialogue_audio
 from utils.vocab_store import add_word
 from utils.dialogue_store import save_dialogue, get_all_dialogues, delete_dialogue
 from utils.streak_store import record_activity
+from utils.pet_store import grant_exp, show_pet_notifications
 
 st.set_page_config(page_title="Dialogue", page_icon="🎭", layout="centered")
 record_activity()
+show_pet_notifications()
 
 col_t, col_i = st.columns([4, 1])
 with col_t:
@@ -205,6 +207,17 @@ with tab_new:
     data = st.session_state["dialogue_data"]
 
     show_dialogue(data, key_prefix="new_")
+
+    # ── EXP ──
+    st.markdown("---")
+    _exp_key = f"_exp_dialogue_{data['phrase'][:20]}"
+    if not st.session_state.get(_exp_key):
+        if st.button("✅ ダイアログ学習完了！(+20pt)", type="primary", use_container_width=True):
+            grant_exp(20)
+            st.session_state[_exp_key] = True
+            st.rerun()
+    else:
+        st.success("🐾 ペットに +20pt あげました！")
 
     st.markdown("---")
     if st.button("💾 Save to Archive", key="new_save_archive"):

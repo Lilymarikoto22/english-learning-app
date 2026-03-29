@@ -151,6 +151,63 @@ with col_t:
 with col_img:
     st.image("assets/line_ashiato03_cat.png", width=80)
 
+# ── Study Pet ─────────────────────────────────────────────
+import random as _random
+from utils.pet_store import get_pet, DAILY_CAP, STAGE_INFO, STAGE_THRESHOLDS, next_stage_exp
+
+_pet = get_pet()
+_stage = _pet.get("stage", 1)
+_today_exp = _pet.get("today_exp", 0)
+_total_exp = _pet.get("total_exp", 0)
+_info = STAGE_INFO.get(_stage, STAGE_INFO[1])
+_is_full = _today_exp >= DAILY_CAP
+_today_pct = min(1.0, _today_exp / DAILY_CAP)
+
+_next_exp = next_stage_exp(_stage)
+_prev_exp = next((t for s, t in STAGE_THRESHOLDS if s == _stage), 0)
+if _next_exp:
+    _stage_pct = min(1.0, max(0.0, (_total_exp - _prev_exp) / (_next_exp - _prev_exp)))
+    _stage_label = f"次の進化まで {_next_exp - _total_exp} pt"
+else:
+    _stage_pct = 1.0
+    _stage_label = "最高レベル達成！🎉"
+
+_REACTIONS = [
+    "いっしょにがんばろう！💪",
+    "きょうもえらい！✨",
+    "ずっとおうえんしてるよ🌟",
+    "もっとおおきくなりたいな🌱",
+    "まいにちがんばってるね👀",
+    "だいすき！❤️",
+]
+
+st.markdown("---")
+st.markdown("### 🐾 Study Pet")
+
+_col_pet, _col_info = st.columns([1, 3])
+with _col_pet:
+    _pet_img = f"assets/pet_{_stage}.png"
+    if os.path.exists(_pet_img):
+        st.image(_pet_img, width=100)
+    else:
+        st.markdown(
+            f"<div style='text-align:center; font-size:5em; line-height:1.1;'>{_info['emoji']}</div>",
+            unsafe_allow_html=True,
+        )
+    if st.button("なでる ❤️", key="pet_pat", use_container_width=True):
+        st.session_state["_pet_msg"] = _random.choice(_REACTIONS)
+
+with _col_info:
+    st.markdown(f"**{_info['name']}**　Stage {_stage} / 6")
+    _today_label = "🌙 今日はおなかいっぱい！また明日ね" if _is_full else f"今日: {_today_exp} / {DAILY_CAP} pt"
+    st.markdown(f"<small style='color:#64748b;'>{_today_label}</small>", unsafe_allow_html=True)
+    st.progress(_today_pct)
+    st.markdown(f"<small style='color:#94a3b8;'>累積 {_total_exp} pt ／ {_stage_label}</small>", unsafe_allow_html=True)
+    st.progress(_stage_pct)
+
+if st.session_state.get("_pet_msg"):
+    st.info(f"💬 {st.session_state['_pet_msg']}")
+
 # ── 次のマイルストーン ─────────────────────────────────────
 MILESTONES = [3, 7, 10, 14, 20, 30, 50, 100]
 next_m = next((m for m in MILESTONES if m > streak), None)

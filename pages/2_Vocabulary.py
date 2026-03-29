@@ -4,9 +4,11 @@ import streamlit as st
 from utils.vocab_store import get_all_words, get_words_by_level, add_word, update_review_count, delete_word
 from utils.claude_client import get_example_sentence, get_recommended_words, get_api_key
 from utils.streak_store import record_activity
+from utils.pet_store import grant_exp, show_pet_notifications
 
 st.set_page_config(page_title="Vocabulary", page_icon="📚", layout="centered")
 record_activity()
+show_pet_notifications()
 
 col_t, col_i = st.columns([4, 1])
 with col_t:
@@ -182,6 +184,7 @@ with tab_review:
             with col1:
                 if st.button("✅ 覚えた", use_container_width=True, type="primary"):
                     update_review_count(idx, 1)
+                    grant_exp(10)
                     st.session_state.card_index = random.choices(range(len(words)), weights=probabilities)[0]
                     st.session_state.show_answer = False
                     st.session_state.example_sentence = ""
@@ -323,7 +326,7 @@ with tab_battle:
 
     def reset_battle():
         for k in ["bq_questions", "bq_current", "bq_score", "bq_hp",
-                  "bq_wrong", "bq_phase", "bq_last_correct", "bq_feedback"]:
+                  "bq_wrong", "bq_phase", "bq_last_correct", "bq_feedback", "bq_exp_granted"]:
             st.session_state.pop(k, None)
 
     # ── フェーズ: コース選択 ──
@@ -458,6 +461,10 @@ with tab_battle:
         wrong = st.session_state["bq_wrong"]
         total = len(st.session_state["bq_questions"])
         cleared = score >= 7 and hp > 0
+
+        if not st.session_state.get("bq_exp_granted"):
+            grant_exp(30 if cleared else 10)
+            st.session_state["bq_exp_granted"] = True
 
         if cleared:
             st.markdown(

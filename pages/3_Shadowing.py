@@ -6,9 +6,11 @@ from utils.article_store import save_article, get_all_articles, delete_article
 from utils.web_search import search_bbc_news, search_ted_talks
 from utils.vocab_store import add_word
 from utils.streak_store import record_activity
+from utils.pet_store import grant_exp, show_pet_notifications
 
 st.set_page_config(page_title="Shadowing", page_icon="🗣️", layout="centered")
 record_activity()
+show_pet_notifications()
 
 col_t, col_i = st.columns([4, 1])
 with col_t:
@@ -306,6 +308,17 @@ with tab_new:
 
         st.markdown("---")
         show_article_player(article, key_prefix="new")
+
+        # ── EXP ──
+        st.markdown("---")
+        _exp_key = f"_exp_shadow_{article['title'][:20]}"
+        if not st.session_state.get(_exp_key):
+            if st.button("✅ シャドウイング完了！(+30pt)", type="primary", use_container_width=True):
+                grant_exp(30)
+                st.session_state[_exp_key] = True
+                st.rerun()
+        else:
+            st.success("🐾 ペットに +30pt あげました！")
 
 
 # ---- タブ2: アーカイブ ----
