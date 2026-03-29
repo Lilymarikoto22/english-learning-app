@@ -14,7 +14,7 @@ show_pet_notifications()
 col_t, col_i = st.columns([4, 1])
 with col_t:
     st.title("🎭 Phrase & Dialogue")
-    st.markdown("Learn a natural English phrase through a short British story.")
+    st.markdown("短い物語を通して、自然な英語フレーズを身につけましょう。")
 with col_i:
     st.image("assets/animal_penguin_music_band.png", width=120)
 st.markdown("---")
