@@ -301,64 +301,66 @@ with tab_list:
 
 
 # ---- タブ5: バトルクイズ ----
-with tab_battle:
+_BQ_COURSE_OPTIONS = ["初級", "中級", "上級"]
+_BQ_HERO_IMAGE = "assets/yuusya_game.png"
+_BQ_MONSTERS = [
+    {"name": "スライム", "img": "assets/fantasy_game_character_slime.png", "emoji": "🟢"},
+    {"name": "ゴブリン", "img": "assets/fantasy_goblin.png",               "emoji": "👺"},
+    {"name": "オーク",   "img": "assets/fantasy_orc.png",                  "emoji": "💚"},
+    {"name": "ドラゴン", "img": "assets/dragon_fire4_yellow.png",          "emoji": "🐉"},
+]
+_BQ_TOTAL_Q = 20
+_BQ_Q_PER_MONSTER = 5
+_BQ_PLAYER_HP = 5
 
-    COURSE_OPTIONS = ["初級", "中級", "上級"]
-    HERO_IMAGE = "assets/yuusya_game.png"
-    MONSTERS = [
-        {"name": "スライム", "img": "assets/fantasy_game_character_slime.png", "emoji": "🟢"},
-        {"name": "ゴブリン", "img": "assets/fantasy_goblin.png",               "emoji": "👺"},
-        {"name": "オーク",   "img": "assets/fantasy_orc.png",                  "emoji": "💚"},
-        {"name": "ドラゴン", "img": "assets/dragon_fire4_yellow.png",          "emoji": "🐉"},
-    ]
-    TOTAL_Q = 20
-    Q_PER_MONSTER = 5   # 4体 × 5問
-    PLAYER_HP = 5
 
-    def _short_def(definition: str) -> str:
-        return definition.split("/")[0].strip()
+def _short_def(definition: str) -> str:
+    return definition.split("/")[0].strip()
 
-    def build_questions(words: list[dict]) -> list[dict]:
-        pool = [w for w in words if w.get("word") and w.get("definition")]
-        if len(pool) < 3:
-            return []
-        # 単語6:熟語4 の配分
-        idioms    = [w for w in pool if w.get("pos") == "熟語"]
-        non_idioms = [w for w in pool if w.get("pos") != "熟語"]
-        n_idiom = min(8, len(idioms))
-        n_word  = min(TOTAL_Q - n_idiom, len(non_idioms))
-        selected = (random.sample(non_idioms, n_word) +
-                    (random.sample(idioms, n_idiom) if n_idiom else []))
-        random.shuffle(selected)
-        selected = selected[:TOTAL_Q]
 
-        questions = []
-        for i, w in enumerate(selected):
-            q_type = "word2def" if i % 2 == 0 else "def2word"
-            wrong_pool = [x for x in pool if x["id"] != w["id"]]
-            if len(wrong_pool) < 2:
-                continue
-            wrongs = random.sample(wrong_pool, 2)
-            if q_type == "word2def":
-                choices = [_short_def(w["definition"])] + [_short_def(x["definition"]) for x in wrongs]
-            else:
-                choices = [w["word"]] + [x["word"] for x in wrongs]
-            random.shuffle(choices)
-            correct = _short_def(w["definition"]) if q_type == "word2def" else w["word"]
-            questions.append({
-                "word": w["word"],
-                "definition": _short_def(w["definition"]),
-                "q_type": q_type,
-                "choices": choices,
-                "answer_idx": choices.index(correct),
-            })
-        return questions[:TOTAL_Q]
+def _build_questions(words: list[dict]) -> list[dict]:
+    pool = [w for w in words if w.get("word") and w.get("definition")]
+    if len(pool) < 3:
+        return []
+    idioms     = [w for w in pool if w.get("pos") == "熟語"]
+    non_idioms = [w for w in pool if w.get("pos") != "熟語"]
+    n_idiom = min(8, len(idioms))
+    n_word  = min(_BQ_TOTAL_Q - n_idiom, len(non_idioms))
+    selected = (random.sample(non_idioms, n_word) +
+                (random.sample(idioms, n_idiom) if n_idiom else []))
+    random.shuffle(selected)
+    selected = selected[:_BQ_TOTAL_Q]
+    questions = []
+    for i, w in enumerate(selected):
+        q_type = "word2def" if i % 2 == 0 else "def2word"
+        wrong_pool = [x for x in pool if x["id"] != w["id"]]
+        if len(wrong_pool) < 2:
+            continue
+        wrongs = random.sample(wrong_pool, 2)
+        if q_type == "word2def":
+            choices = [_short_def(w["definition"])] + [_short_def(x["definition"]) for x in wrongs]
+        else:
+            choices = [w["word"]] + [x["word"] for x in wrongs]
+        random.shuffle(choices)
+        correct = _short_def(w["definition"]) if q_type == "word2def" else w["word"]
+        questions.append({
+            "word": w["word"],
+            "definition": _short_def(w["definition"]),
+            "q_type": q_type,
+            "choices": choices,
+            "answer_idx": choices.index(correct),
+        })
+    return questions[:_BQ_TOTAL_Q]
 
-    def reset_battle():
-        for k in ["bq_questions", "bq_current", "bq_score", "bq_hp",
-                  "bq_wrong", "bq_phase", "bq_feedback", "bq_exp_granted", "bq_monster_idx"]:
-            st.session_state.pop(k, None)
 
+def _reset_battle():
+    for k in ["bq_questions", "bq_current", "bq_score", "bq_hp",
+              "bq_wrong", "bq_phase", "bq_feedback", "bq_exp_granted", "bq_monster_idx"]:
+        st.session_state.pop(k, None)
+
+
+@st.fragment
+def _battle_quiz_ui():
     phase = st.session_state.get("bq_phase", "select")
 
     # ── フェーズ: コース選択 ──────────────────────────────────
@@ -366,7 +368,7 @@ with tab_battle:
         st.subheader("⚔️ バトルクイズ")
         st.markdown("4体のモンスターを倒せ！合計20問。HPを守り切ってクリアしよう。")
 
-        course = st.selectbox("コースを選ぶ", COURSE_OPTIONS, key="bq_course_select")
+        course = st.selectbox("コースを選ぶ", _BQ_COURSE_OPTIONS, key="bq_course_select")
 
         if st.button("🗡️ バトル開始！", type="primary", use_container_width=True):
             with st.spinner("単語を読み込み中..."):
@@ -374,7 +376,7 @@ with tab_battle:
             if len(course_words) < 10:
                 st.warning("単語が少なすぎます（最低10語必要）。")
             else:
-                questions = build_questions(course_words)
+                questions = _build_questions(course_words)
                 if not questions:
                     st.error("問題を生成できませんでした。")
                 else:
@@ -382,7 +384,7 @@ with tab_battle:
                         "bq_questions": questions,
                         "bq_current": 0,
                         "bq_score": 0,
-                        "bq_hp": PLAYER_HP,
+                        "bq_hp": _BQ_PLAYER_HP,
                         "bq_wrong": [],
                         "bq_phase": "playing",
                         "bq_feedback": "",
@@ -393,8 +395,8 @@ with tab_battle:
 
     # ── フェーズ: モンスター撃破トランジション ────────────────
     elif phase == "monster_clear":
-        defeated = MONSTERS[st.session_state.get("bq_monster_idx", 0) - 1]
-        next_mon = MONSTERS[st.session_state.get("bq_monster_idx", 0)]
+        defeated = _BQ_MONSTERS[st.session_state.get("bq_monster_idx", 0) - 1]
+        next_mon = _BQ_MONSTERS[st.session_state.get("bq_monster_idx", 0)]
         st.markdown(
             f"""<div style="background:linear-gradient(135deg,#dcfce7,#bbf7d0);
                             border:2px solid #22c55e; border-radius:16px;
@@ -406,7 +408,7 @@ with tab_battle:
             </div>""",
             unsafe_allow_html=True,
         )
-        hearts = "❤️" * st.session_state["bq_hp"] + "🖤" * (PLAYER_HP - st.session_state["bq_hp"])
+        hearts = "❤️" * st.session_state["bq_hp"] + "🖤" * (_BQ_PLAYER_HP - st.session_state["bq_hp"])
         st.markdown(f"現在のHP: {hearts}")
         st.markdown(f"### 次の敵: {next_mon['emoji']} **{next_mon['name']}**")
         if os.path.exists(next_mon["img"]):
@@ -418,16 +420,15 @@ with tab_battle:
 
     # ── フェーズ: プレイ中 ───────────────────────────────────
     elif phase == "playing":
-        questions   = st.session_state["bq_questions"]
-        current     = st.session_state["bq_current"]
-        score       = st.session_state["bq_score"]
-        hp          = st.session_state["bq_hp"]
-        monster_idx = st.session_state.get("bq_monster_idx", 0)
-        monster     = MONSTERS[monster_idx]
-        q_in_monster = current % Q_PER_MONSTER  # 0-4
+        questions    = st.session_state["bq_questions"]
+        current      = st.session_state["bq_current"]
+        score        = st.session_state["bq_score"]
+        hp           = st.session_state["bq_hp"]
+        monster_idx  = st.session_state.get("bq_monster_idx", 0)
+        monster      = _BQ_MONSTERS[monster_idx]
+        q_in_monster = current % _BQ_Q_PER_MONSTER
 
-        # ステータスバー
-        hearts = "❤️" * hp + "🖤" * (PLAYER_HP - hp)
+        hearts = "❤️" * hp + "🖤" * (_BQ_PLAYER_HP - hp)
         st.markdown(
             f"""<div style="display:flex; justify-content:space-between; align-items:center;
                             background:#fff; border:1px solid #bfdbfe; border-radius:10px;
@@ -435,26 +436,24 @@ with tab_battle:
                 <div style="font-size:1.2em;">{hearts}</div>
                 <div style="color:#64748b; font-size:0.85em;">
                     {monster['emoji']} {monster['name']}（{monster_idx+1}/4体目）
-                    問題 {q_in_monster+1}/{Q_PER_MONSTER}
+                    問題 {q_in_monster+1}/{_BQ_Q_PER_MONSTER}
                 </div>
                 <div style="color:#16a34a; font-weight:bold;">✅ {score}問</div>
             </div>""",
             unsafe_allow_html=True,
         )
 
-        # バトル画面
         col_hero, col_vs, col_mon = st.columns([2, 1, 2])
         with col_hero:
-            if os.path.exists(HERO_IMAGE):
-                st.image(HERO_IMAGE, width=110)
+            if os.path.exists(_BQ_HERO_IMAGE):
+                st.image(_BQ_HERO_IMAGE, width=110)
             else:
                 st.markdown("<div style='font-size:4em;text-align:center;'>🧒</div>", unsafe_allow_html=True)
             st.markdown("<div style='text-align:center;font-size:0.8em;color:#64748b;'>プレイヤー</div>", unsafe_allow_html=True)
 
         with col_vs:
             fb = st.session_state.get("bq_feedback", "")
-            icon = fb if fb else "⚔️"
-            st.markdown(f"<div style='text-align:center;font-size:1.6em;margin-top:28px;'>{icon}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align:center;font-size:1.6em;margin-top:28px;'>{fb or '⚔️'}</div>", unsafe_allow_html=True)
 
         with col_mon:
             if os.path.exists(monster["img"]):
@@ -465,7 +464,6 @@ with tab_battle:
 
         st.markdown("---")
 
-        # 問題
         q = questions[current]
         if q["q_type"] == "word2def":
             st.markdown("### この単語の意味は？")
@@ -502,8 +500,7 @@ with tab_battle:
                 elif next_q >= len(questions):
                     st.session_state["bq_phase"] = "result"
                     st.session_state["bq_feedback"] = ""
-                elif next_q % Q_PER_MONSTER == 0:
-                    # モンスター撃破
+                elif next_q % _BQ_Q_PER_MONSTER == 0:
                     st.session_state["bq_monster_idx"] = monster_idx + 1
                     st.session_state["bq_current"] = next_q
                     st.session_state["bq_phase"] = "monster_clear"
@@ -513,10 +510,10 @@ with tab_battle:
 
     # ── フェーズ: 結果 ───────────────────────────────────────
     elif phase == "result":
-        score  = st.session_state["bq_score"]
-        hp     = st.session_state["bq_hp"]
-        wrong  = st.session_state["bq_wrong"]
-        total  = len(st.session_state["bq_questions"])
+        score   = st.session_state["bq_score"]
+        hp      = st.session_state["bq_hp"]
+        wrong   = st.session_state["bq_wrong"]
+        total   = len(st.session_state["bq_questions"])
         cleared = hp > 0
 
         if not st.session_state.get("bq_exp_granted"):
@@ -566,5 +563,9 @@ with tab_battle:
 
         st.markdown("---")
         if st.button("🔄 もう一度チャレンジ", type="primary", use_container_width=True):
-            reset_battle()
+            _reset_battle()
             st.rerun()
+
+
+with tab_battle:
+    _battle_quiz_ui()
