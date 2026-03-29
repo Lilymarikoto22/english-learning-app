@@ -28,12 +28,12 @@ LEVELS = ["", "初級", "中級", "上級"]
 LEVEL_LABELS = {"": "なし", "初級": "初級", "中級": "中級", "上級": "上級"}
 
 
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=300, show_spinner=False)
 def _cached_all_words():
     return get_all_words()
 
 
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=300, show_spinner=False)
 def _cached_words_by_level(level: str):
     return get_words_by_level(level)
 
@@ -364,13 +364,13 @@ with tab_battle:
         st.markdown("4体のモンスターを倒せ！各5問、合計20問。HPを守り切ってクリアしよう。")
 
         course = st.selectbox("コースを選ぶ", COURSE_OPTIONS, key="bq_course_select")
-        course_words = _cached_words_by_level(course)
-        st.markdown(f"**{course}コース**の単語: {len(course_words)} 語")
 
-        if len(course_words) < 10:
-            st.warning("単語が少なすぎます（最低10語必要）。")
-        else:
-            if st.button("🗡️ バトル開始！", type="primary", use_container_width=True):
+        if st.button("🗡️ バトル開始！", type="primary", use_container_width=True):
+            with st.spinner("単語を読み込み中..."):
+                course_words = _cached_words_by_level(course)
+            if len(course_words) < 10:
+                st.warning("単語が少なすぎます（最低10語必要）。")
+            else:
                 questions = build_questions(course_words)
                 if not questions:
                     st.error("問題を生成できませんでした。")
