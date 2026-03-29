@@ -125,7 +125,8 @@ if len(st.session_state.messages) >= 2:
                     for w in words:
                         add_word(w["word"], w["definition"],
                                  pos=w.get("pos", ""), verb_type=w.get("verb_type", ""),
-                                 pronunciation=w.get("pronunciation", ""))
+                                 pronunciation=w.get("pronunciation", ""),
+                                 toeic_target=w.get("toeic_target", ""))
                     st.success(f"✅ {len(words)} 語を単語帳に追加しました！")
                     for w in words:
                         pron = f" {w['pronunciation']}" if w.get("pronunciation") else ""

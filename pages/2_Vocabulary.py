@@ -47,14 +47,20 @@ with tab_save:
             new_pos = st.selectbox("品詞", ["", "名詞", "動詞", "形容詞", "副詞", "熟語", "その他"])
         with col_vt:
             new_verb_type = st.selectbox("動詞の種類", ["", "他動詞", "自動詞", "両方"])
-        new_level = st.selectbox("難易度レベル", ["なし", "初級", "中級", "上級"])
+        col_lv, col_toeic = st.columns(2)
+        with col_lv:
+            new_level = st.selectbox("難易度レベル", ["なし", "初級", "中級", "上級"])
+        with col_toeic:
+            new_toeic = st.selectbox("TOEIC目標スコア", ["なし", "600", "800", "990"])
         submitted = st.form_submit_button("保存する", type="primary")
 
     if submitted:
         if new_word.strip() and new_definition.strip():
             level_val = "" if new_level == "なし" else new_level
+            toeic_val = "" if new_toeic == "なし" else new_toeic
             add_word(new_word, new_definition, level=level_val,
-                     pos=new_pos, verb_type=new_verb_type, pronunciation=new_pronunciation)
+                     pos=new_pos, verb_type=new_verb_type, pronunciation=new_pronunciation,
+                     toeic_target=toeic_val)
             st.success(f"「{new_word}」を保存しました！")
         else:
             st.warning("単語と意味の両方を入力してください。")
@@ -97,7 +103,8 @@ with tab_recommend:
             for w in selected_words:
                 add_word(w["word"], w["definition"], level=rec_level,
                          pos=w.get("pos", ""), verb_type=w.get("verb_type", ""),
-                         pronunciation=w.get("pronunciation", ""))
+                         pronunciation=w.get("pronunciation", ""),
+                         toeic_target=w.get("toeic_target", ""))
             st.success(f"✅ {len(selected_words)} 語を単語帳に追加しました！（レベル: {rec_level}）")
             del st.session_state["recommended_words"]
             st.rerun()
@@ -199,11 +206,19 @@ with tab_list:
         st.info("まだ単語が保存されていません。")
     else:
         LEVEL_ORDER = {"初級": 0, "中級": 1, "上級": 2, "": 3}
-        col_f, col_s = st.columns(2)
-        with col_f:
+        TOEIC_ORDER = {"600": 0, "800": 1, "990": 2, "": 3}
+        TOEIC_COLOR = {"600": "#dcfce7", "800": "#dbeafe", "990": "#fef9c3"}
+
+        col_f1, col_f2, col_s = st.columns(3)
+        with col_f1:
             filter_level = st.selectbox("レベルで絞り込み", ["全て", "初級", "中級", "上級", "なし"], key="list_filter")
+        with col_f2:
+            filter_toeic = st.selectbox("TOEICで絞り込み", ["全て", "600", "800", "990"], key="list_toeic_filter")
         with col_s:
-            sort_by = st.selectbox("並び順", ["登録順", "レベル順（初級→上級）", "レベル順（上級→初級）", "復習回数が少ない順"], key="list_sort")
+            sort_by = st.selectbox("並び順", [
+                "登録順", "レベル順（初級→上級）", "レベル順（上級→初級）",
+                "TOEIC優先（600→990）", "復習回数が少ない順"
+            ], key="list_sort")
 
         display_words = list(words)
 
@@ -213,11 +228,16 @@ with tab_list:
         elif filter_level != "全て":
             display_words = [w for w in display_words if w.get("level") == filter_level]
 
+        if filter_toeic != "全て":
+            display_words = [w for w in display_words if w.get("toeic_target") == filter_toeic]
+
         # 並び替え
         if sort_by == "レベル順（初級→上級）":
             display_words.sort(key=lambda w: LEVEL_ORDER.get(w.get("level", ""), 3))
         elif sort_by == "レベル順（上級→初級）":
             display_words.sort(key=lambda w: -LEVEL_ORDER.get(w.get("level", ""), 3))
+        elif sort_by == "TOEIC優先（600→990）":
+            display_words.sort(key=lambda w: TOEIC_ORDER.get(w.get("toeic_target", ""), 3))
         elif sort_by == "復習回数が少ない順":
             display_words.sort(key=lambda w: w.get("review_count", 0))
 
@@ -230,7 +250,8 @@ with tab_list:
             example = def_parts[1].strip() if len(def_parts) > 1 else ""
 
             level_tag = f"[{w['level']}] " if w.get("level") else ""
-            with st.expander(f"{level_tag}{w['word']}  —  {meaning[:40]}"):
+            toeic_tag = f"[TOEIC{w['toeic_target']}] " if w.get("toeic_target") else ""
+            with st.expander(f"{toeic_tag}{level_tag}{w['word']}  —  {meaning[:40]}"):
                 col_a, col_b = st.columns([3, 1])
                 with col_a:
                     st.markdown(f"**単語・熟語:** {w['word']}")
@@ -242,8 +263,13 @@ with tab_list:
                     st.markdown(f"**意味:** {meaning}")
                     if example:
                         st.markdown(f"**例文:** *{example}*")
+                    tags = []
                     if w.get("level"):
-                        st.markdown(f"**レベル:** {w['level']}")
+                        tags.append(f"レベル: {w['level']}")
+                    if w.get("toeic_target"):
+                        tags.append(f"TOEIC: {w['toeic_target']}点")
+                    if tags:
+                        st.markdown(f"**{' ／ '.join(tags)}**")
                     st.markdown(f"**復習回数:** {w.get('review_count', 0)}")
                 with col_b:
                     orig_idx = words.index(w)

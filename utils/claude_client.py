@@ -136,9 +136,10 @@ def extract_vocab_from_conversation(messages: list[dict]) -> list[dict]:
                     "- definition: Japanese meaning + one short example sentence\n"
                     "- pos: part of speech in Japanese (名詞/動詞/形容詞/副詞/熟語/その他)\n"
                     "- verb_type: 他動詞 or 自動詞 if verb, otherwise empty string\n"
-                    "- pronunciation: IPA pronunciation (e.g. /prəˈnaʊns/)\n\n"
+                    "- pronunciation: IPA pronunciation (e.g. /prəˈnaʊns/)\n"
+                    "- toeic_target: the minimum TOEIC score this word is important for — one of: '600', '800', '990', or '' if not TOEIC-relevant\n\n"
                     "Reply ONLY with a JSON array like this (no other text):\n"
-                    '[{"word": "...", "definition": "日本語の意味 / example", "pos": "動詞", "verb_type": "他動詞", "pronunciation": "/.../"}, ...]\n\n'
+                    '[{"word": "...", "definition": "日本語の意味 / example", "pos": "動詞", "verb_type": "他動詞", "pronunciation": "/.../", "toeic_target": "600"}, ...]\n\n'
                     f"Conversation:\n{conversation_text}"
                 ),
             }
@@ -177,9 +178,10 @@ def get_recommended_words(level: str) -> list[dict]:
                     "- definition: Japanese meaning + one short example sentence\n"
                     "- pos: part of speech in Japanese (名詞/動詞/形容詞/副詞/熟語/その他)\n"
                     "- verb_type: 他動詞 or 自動詞 if verb, otherwise empty string\n"
-                    "- pronunciation: IPA pronunciation (e.g. /prəˈnaʊns/)\n\n"
+                    "- pronunciation: IPA pronunciation (e.g. /prəˈnaʊns/)\n"
+                    "- toeic_target: the minimum TOEIC score this word is important for — one of: '600', '800', '990', or '' if not TOEIC-relevant\n\n"
                     "Reply ONLY with a JSON array like this (no other text):\n"
-                    '[{"word": "...", "definition": "日本語の意味 / example", "pos": "動詞", "verb_type": "他動詞", "pronunciation": "/.../"}, ...]'
+                    '[{"word": "...", "definition": "日本語の意味 / example", "pos": "動詞", "verb_type": "他動詞", "pronunciation": "/.../", "toeic_target": "600"}, ...]'
                 ),
             }
         ],

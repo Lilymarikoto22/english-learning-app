@@ -18,7 +18,8 @@ def get_words_by_level(level: str) -> list[dict]:
 
 
 def add_word(word: str, definition: str = "", level: str = "",
-             pos: str = "", verb_type: str = "", pronunciation: str = "") -> None:
+             pos: str = "", verb_type: str = "", pronunciation: str = "",
+             toeic_target: str = "") -> None:
     sb = get_client()
     sb.table("vocabulary").insert({
         "word": word.strip(),
@@ -28,6 +29,7 @@ def add_word(word: str, definition: str = "", level: str = "",
         "pos": pos.strip(),
         "verb_type": verb_type.strip(),
         "pronunciation": pronunciation.strip(),
+        "toeic_target": toeic_target.strip(),
     }).execute()
 
 
