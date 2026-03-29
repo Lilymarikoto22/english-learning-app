@@ -35,19 +35,26 @@ with tab_save:
     st.subheader("新しい単語を追加")
 
     with st.form("add_word_form", clear_on_submit=True):
-        new_word = st.text_input("単語", placeholder="例: persistent")
+        new_word = st.text_input("単語・熟語", placeholder="例: persistent / give up")
         new_definition = st.text_area(
             "意味・メモ",
             placeholder="例: しつこい、粘り強い",
             height=80,
         )
+        new_pronunciation = st.text_input("発音記号 (IPA)", placeholder="例: /pərˈsɪstənt/")
+        col_pos, col_vt = st.columns(2)
+        with col_pos:
+            new_pos = st.selectbox("品詞", ["", "名詞", "動詞", "形容詞", "副詞", "熟語", "その他"])
+        with col_vt:
+            new_verb_type = st.selectbox("動詞の種類", ["", "他動詞", "自動詞", "両方"])
         new_level = st.selectbox("難易度レベル", ["なし", "初級", "中級", "上級"])
         submitted = st.form_submit_button("保存する", type="primary")
 
     if submitted:
         if new_word.strip() and new_definition.strip():
             level_val = "" if new_level == "なし" else new_level
-            add_word(new_word, new_definition, level=level_val)
+            add_word(new_word, new_definition, level=level_val,
+                     pos=new_pos, verb_type=new_verb_type, pronunciation=new_pronunciation)
             st.success(f"「{new_word}」を保存しました！")
         else:
             st.warning("単語と意味の両方を入力してください。")
@@ -88,7 +95,9 @@ with tab_recommend:
 
         if st.button("チェックした単語を単語帳に追加", use_container_width=True):
             for w in selected_words:
-                add_word(w["word"], w["definition"], level=rec_level)
+                add_word(w["word"], w["definition"], level=rec_level,
+                         pos=w.get("pos", ""), verb_type=w.get("verb_type", ""),
+                         pronunciation=w.get("pronunciation", ""))
             st.success(f"✅ {len(selected_words)} 語を単語帳に追加しました！（レベル: {rec_level}）")
             del st.session_state["recommended_words"]
             st.rerun()
@@ -115,6 +124,15 @@ with tab_review:
         card = words[idx]
         level_badge = f" `{card.get('level', '')}`" if card.get("level") else ""
 
+        pos_label = card.get("pos", "")
+        vt_label = card.get("verb_type", "")
+        pron_label = card.get("pronunciation", "")
+        level_label = card.get("level", "")
+
+        badges = " &nbsp;".join(f'<span style="background:#dbeafe;color:#1e3a8a;border-radius:4px;padding:2px 7px;font-size:0.8em;">{b}</span>'
+                                for b in [pos_label, vt_label, level_label] if b)
+        pron_html = f'<p style="color:#6366f1;margin:4px 0;font-size:1em;">{pron_label}</p>' if pron_label else ""
+
         st.markdown(
             f"""
             <div style="
@@ -122,10 +140,9 @@ with tab_review:
                 padding: 32px; text-align: center; margin: 16px 0;
             ">
                 <h1 style="color: #1a1a2e; margin: 0;">{card['word']}</h1>
-                <p style="color: #666; margin: 8px 0 0 0; font-size: 0.85em;">
-                    復習回数: {card.get('review_count', 0)}
-                    {f' &nbsp;|&nbsp; {card["level"]}' if card.get("level") else ''}
-                </p>
+                {pron_html}
+                <div style="margin:8px 0;">{badges}</div>
+                <p style="color: #666; margin: 4px 0 0 0; font-size: 0.8em;">復習回数: {card.get('review_count', 0)}</p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -185,6 +202,11 @@ with tab_list:
             level_tag = f"[{w['level']}] " if w.get("level") else ""
             with st.expander(f"{level_tag}{w['word']}  —  {w['definition'][:40]}"):
                 st.markdown(f"**単語:** {w['word']}")
+                if w.get("pronunciation"):
+                    st.markdown(f"**発音:** {w['pronunciation']}")
+                info_parts = [p for p in [w.get("pos", ""), w.get("verb_type", "")] if p]
+                if info_parts:
+                    st.markdown(f"**品詞:** {'　'.join(info_parts)}")
                 st.markdown(f"**意味:** {w['definition']}")
                 if w.get("level"):
                     st.markdown(f"**レベル:** {w['level']}")

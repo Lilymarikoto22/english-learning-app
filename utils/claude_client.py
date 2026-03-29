@@ -129,11 +129,16 @@ def extract_vocab_from_conversation(messages: list[dict]) -> list[dict]:
             {
                 "role": "user",
                 "content": (
-                    "Look at this English conversation and pick up to 5 useful words or phrases "
+                    "Look at this English conversation and pick up to 5 useful words or idioms "
                     "that a Japanese beginner should learn. "
-                    "For each word, provide a simple Japanese definition and one short example sentence.\n\n"
+                    "For each item provide:\n"
+                    "- word: the word or idiom\n"
+                    "- definition: Japanese meaning + one short example sentence\n"
+                    "- pos: part of speech in Japanese (名詞/動詞/形容詞/副詞/熟語/その他)\n"
+                    "- verb_type: 他動詞 or 自動詞 if verb, otherwise empty string\n"
+                    "- pronunciation: IPA pronunciation (e.g. /prəˈnaʊns/)\n\n"
                     "Reply ONLY with a JSON array like this (no other text):\n"
-                    '[{"word": "...", "definition": "日本語の意味 / example sentence"}, ...]\n\n'
+                    '[{"word": "...", "definition": "日本語の意味 / example", "pos": "動詞", "verb_type": "他動詞", "pronunciation": "/.../"}, ...]\n\n'
                     f"Conversation:\n{conversation_text}"
                 ),
             }
@@ -160,15 +165,21 @@ def get_recommended_words(level: str) -> list[dict]:
 
     message = client.messages.create(
         model=VOCABULARY_MODEL,
-        max_tokens=512,
+        max_tokens=800,
         messages=[
             {
                 "role": "user",
                 "content": (
-                    f"Generate 8 useful English words for a Japanese learner at {level} level ({description}). "
-                    "For each word, provide a simple Japanese definition and one short example sentence.\n\n"
+                    f"Generate 8 useful English words or idioms for a Japanese learner at {level} level ({description}). "
+                    "Include a mix of single words and common idioms/phrases.\n"
+                    "For each item provide:\n"
+                    "- word: the word or idiom\n"
+                    "- definition: Japanese meaning + one short example sentence\n"
+                    "- pos: part of speech in Japanese (名詞/動詞/形容詞/副詞/熟語/その他)\n"
+                    "- verb_type: 他動詞 or 自動詞 if verb, otherwise empty string\n"
+                    "- pronunciation: IPA pronunciation (e.g. /prəˈnaʊns/)\n\n"
                     "Reply ONLY with a JSON array like this (no other text):\n"
-                    '[{"word": "...", "definition": "日本語の意味 / example sentence"}, ...]'
+                    '[{"word": "...", "definition": "日本語の意味 / example", "pos": "動詞", "verb_type": "他動詞", "pronunciation": "/.../"}, ...]'
                 ),
             }
         ],

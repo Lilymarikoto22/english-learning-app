@@ -123,10 +123,15 @@ if len(st.session_state.messages) >= 2:
                 words = extract_vocab_from_conversation(api_messages)
                 if words:
                     for w in words:
-                        add_word(w["word"], w["definition"])
+                        add_word(w["word"], w["definition"],
+                                 pos=w.get("pos", ""), verb_type=w.get("verb_type", ""),
+                                 pronunciation=w.get("pronunciation", ""))
                     st.success(f"✅ {len(words)} 語を単語帳に追加しました！")
                     for w in words:
-                        st.markdown(f"- **{w['word']}**: {w['definition']}")
+                        pron = f" {w['pronunciation']}" if w.get("pronunciation") else ""
+                        pos_info = " / ".join(p for p in [w.get("pos",""), w.get("verb_type","")] if p)
+                        pos_str = f" ({pos_info})" if pos_info else ""
+                        st.markdown(f"- **{w['word']}**{pron}{pos_str}: {w['definition']}")
                 else:
                     st.info("抽出できる単語が見つかりませんでした。")
             except Exception as e:

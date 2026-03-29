@@ -17,13 +17,17 @@ def get_words_by_level(level: str) -> list[dict]:
     return res.data or []
 
 
-def add_word(word: str, definition: str = "", level: str = "") -> None:
+def add_word(word: str, definition: str = "", level: str = "",
+             pos: str = "", verb_type: str = "", pronunciation: str = "") -> None:
     sb = get_client()
     sb.table("vocabulary").insert({
         "word": word.strip(),
         "definition": definition.strip(),
         "review_count": 0,
         "level": level,
+        "pos": pos.strip(),
+        "verb_type": verb_type.strip(),
+        "pronunciation": pronunciation.strip(),
     }).execute()
 
 
