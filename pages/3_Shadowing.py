@@ -1,5 +1,7 @@
 import os
 import streamlit as st
+from utils.auth import require_password
+require_password()
 from utils.claude_client import generate_shadowing_article, extract_business_vocab, translate_article, get_api_key
 from utils.tts import generate_audio
 from utils.article_store import save_article, get_all_articles, delete_article

@@ -1,5 +1,7 @@
 import os
 import streamlit as st
+from utils.auth import require_password
+require_password()
 from utils.claude_client import generate_dialogue, translate_dialogue, get_api_key
 from utils.tts import generate_dialogue_audio
 from utils.vocab_store import add_word

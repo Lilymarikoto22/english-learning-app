@@ -1,6 +1,8 @@
 import os
 import random
 import streamlit as st
+from utils.auth import require_password
+require_password()
 from utils.vocab_store import get_all_words, get_words_by_level, add_word, update_review_count, delete_word
 from utils.claude_client import get_example_sentence, get_recommended_words, get_api_key
 from utils.streak_store import record_activity
