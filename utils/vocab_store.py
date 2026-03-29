@@ -1,20 +1,33 @@
 from utils.supabase_client import get_client
 
 
+def _fetch_all(query) -> list[dict]:
+    """ページネーションで全件取得する。"""
+    all_data = []
+    page = 1000
+    offset = 0
+    while True:
+        res = query.range(offset, offset + page - 1).execute()
+        if not res.data:
+            break
+        all_data.extend(res.data)
+        if len(res.data) < page:
+            break
+        offset += page
+    return all_data
+
+
 def get_all_words() -> list[dict]:
     sb = get_client()
-    res = sb.table("vocabulary").select("*").order("created_at", desc=False).limit(9999).execute()
-    return res.data or []
+    return _fetch_all(sb.table("vocabulary").select("*").order("created_at", desc=False))
 
 
 def get_words_by_level(level: str) -> list[dict]:
-    """指定レベルの単語を返す。level='' なら全単語。"""
     sb = get_client()
+    q = sb.table("vocabulary").select("*").order("created_at", desc=False)
     if level:
-        res = sb.table("vocabulary").select("*").eq("level", level).order("created_at", desc=False).limit(9999).execute()
-    else:
-        res = sb.table("vocabulary").select("*").order("created_at", desc=False).limit(9999).execute()
-    return res.data or []
+        q = q.eq("level", level)
+    return _fetch_all(q)
 
 
 def add_word(word: str, definition: str = "", level: str = "",
