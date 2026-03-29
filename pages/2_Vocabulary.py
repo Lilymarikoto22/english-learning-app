@@ -227,6 +227,10 @@ with tab_battle:
     }
     HERO_IMAGE = "assets/yuusya_game.png"
 
+    def _short_def(definition: str) -> str:
+        """'日本語の意味 / example sentence' から日本語部分だけ返す。"""
+        return definition.split("/")[0].strip()
+
     def build_questions(words: list[dict]) -> list[dict]:
         pool = [w for w in words if w.get("word") and w.get("definition")]
         if len(pool) < 3:
@@ -240,14 +244,15 @@ with tab_battle:
             if len(wrongs) < 2:
                 continue
             if q_type == "word2def":
-                choices = [w["definition"]] + [x["definition"] for x in wrongs]
+                choices = [_short_def(w["definition"])] + [_short_def(x["definition"]) for x in wrongs]
             else:
                 choices = [w["word"]] + [x["word"] for x in wrongs]
             random.shuffle(choices)
-            answer_idx = choices.index(w["definition"] if q_type == "word2def" else w["word"])
+            correct = _short_def(w["definition"]) if q_type == "word2def" else w["word"]
+            answer_idx = choices.index(correct)
             questions.append({
                 "word": w["word"],
-                "definition": w["definition"],
+                "definition": _short_def(w["definition"]),
                 "q_type": q_type,
                 "choices": choices,
                 "answer_idx": answer_idx,
