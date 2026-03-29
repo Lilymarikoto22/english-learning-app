@@ -7,7 +7,8 @@ load_dotenv()
 
 def require_password() -> None:
     """パスワードが設定されている場合、未認証なら入力画面を表示して停止する。"""
-    correct = os.getenv("APP_PASSWORD", "")
+    # Streamlit Cloud は st.secrets、ローカルは .env から取得
+    correct = st.secrets.get("APP_PASSWORD", "") or os.getenv("APP_PASSWORD", "")
     if not correct:
         return  # パスワード未設定なら認証スキップ
     if st.session_state.get("authenticated"):
