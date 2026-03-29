@@ -26,7 +26,7 @@ LEVELS = ["", "初級", "中級", "上級"]
 LEVEL_LABELS = {"": "なし", "初級": "初級", "中級": "中級", "上級": "上級"}
 
 tab_save, tab_recommend, tab_review, tab_list, tab_battle = st.tabs([
-    "➕ 単語を追加", "✨ おすすめ単語", "🃏 フラッシュカード", "📋 単語一覧", "⚔️ バトルクイズ"
+    "➕ 単語を追加", "✨ おすすめ単語・熟語", "🃏 フラッシュカード", "📋 単語一覧", "⚔️ バトルクイズ"
 ])
 
 
@@ -60,10 +60,10 @@ with tab_save:
             st.warning("単語と意味の両方を入力してください。")
 
 
-# ---- タブ2: おすすめ単語 ----
+# ---- タブ2: おすすめ単語・熟語 ----
 with tab_recommend:
-    st.subheader("レベル別おすすめ単語")
-    st.markdown("レベルを選ぶと、Claude がおすすめの単語をリストアップします。")
+    st.subheader("レベル別おすすめ単語・熟語")
+    st.markdown("レベルを選ぶと、Claude がおすすめの単語と熟語をリストアップします。")
 
     CEFR_LEVELS = ["初級 (CEFR A1-A2)", "中級 (CEFR B1-B2)", "上級 (CEFR C1-C2)"]
     CEFR_TO_LEVEL = {
