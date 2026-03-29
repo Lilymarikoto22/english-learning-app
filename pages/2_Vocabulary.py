@@ -29,20 +29,27 @@ LEVEL_LABELS = {"": "なし", "初級": "初級", "中級": "中級", "上級": 
 
 
 @st.cache_data(ttl=300, show_spinner=False)
-def _cached_all_words():
-    return get_all_words()
-
-
-@st.cache_data(ttl=300, show_spinner=False)
 def _cached_words_by_level(level: str):
     return get_words_by_level(level)
+
+
+def _get_all_words_session() -> list[dict]:
+    """セッション内キャッシュ（pickle不要で高速）"""
+    if "_words_cache" not in st.session_state:
+        st.session_state["_words_cache"] = get_all_words()
+    return st.session_state["_words_cache"]
+
+
+def _clear_words_cache():
+    st.session_state.pop("_words_cache", None)
+    _cached_words_by_level.clear()
 
 tab_save, tab_recommend, tab_review, tab_list, tab_battle = st.tabs([
     "➕ 単語を追加", "✨ おすすめ単語・熟語", "🃏 フラッシュカード", "📋 単語一覧", "⚔️ バトルクイズ"
 ])
 
-# 全単語を1回だけ取得してタブ間で共有
-all_words = _cached_all_words()
+# 全単語をセッションキャッシュから取得（タブ間で共有）
+all_words = _get_all_words_session()
 
 
 # ---- タブ1: 単語を追加 ----
@@ -76,8 +83,7 @@ with tab_save:
             add_word(new_word, new_definition, level=level_val,
                      pos=new_pos, verb_type=new_verb_type, pronunciation=new_pronunciation,
                      toeic_target=toeic_val)
-            _cached_all_words.clear()
-            _cached_words_by_level.clear()
+            _clear_words_cache()
             st.success(f"「{new_word}」を保存しました！")
         else:
             st.warning("単語と意味の両方を入力してください。")
@@ -122,8 +128,7 @@ with tab_recommend:
                          pos=w.get("pos", ""), verb_type=w.get("verb_type", ""),
                          pronunciation=w.get("pronunciation", ""),
                          toeic_target=w.get("toeic_target", ""))
-            _cached_all_words.clear()
-            _cached_words_by_level.clear()
+            _clear_words_cache()
             st.success(f"✅ {len(selected_words)} 語を単語帳に追加しました！（レベル: {rec_level}）")
             del st.session_state["recommended_words"]
             st.rerun()
@@ -261,10 +266,18 @@ with tab_list:
         elif sort_by == "復習回数が少ない順":
             display_words.sort(key=lambda w: w.get("review_count", 0))
 
-        st.caption(f"{len(display_words)} 語表示中（全 {len(words)} 語）")
+        PAGE_SIZE = 50
+        total_pages = max(1, (len(display_words) + PAGE_SIZE - 1) // PAGE_SIZE)
+        if st.session_state.get("list_page", 0) >= total_pages:
+            st.session_state["list_page"] = 0
+        page = st.session_state.get("list_page", 0)
+        page_words = display_words[page * PAGE_SIZE:(page + 1) * PAGE_SIZE]
 
-        for i, w in enumerate(display_words):
-            # 意味と例文を分離
+        start = page * PAGE_SIZE + 1
+        end = min((page + 1) * PAGE_SIZE, len(display_words))
+        st.caption(f"{len(display_words)} 語中 {start}〜{end} 件表示（全 {len(words)} 語）")
+
+        for i, w in enumerate(page_words):
             def_parts = w["definition"].split("/", 1)
             meaning = def_parts[0].strip()
             example = def_parts[1].strip() if len(def_parts) > 1 else ""
@@ -293,11 +306,23 @@ with tab_list:
                     st.markdown(f"**復習回数:** {w.get('review_count', 0)}")
                 with col_b:
                     orig_idx = words.index(w)
-                    if st.button("削除", key=f"del_{i}"):
+                    if st.button("削除", key=f"del_{page}_{i}"):
                         delete_word(orig_idx)
-                        _cached_all_words.clear()
-                        _cached_words_by_level.clear()
+                        _clear_words_cache()
                         st.rerun()
+
+        if total_pages > 1:
+            col_prev, col_info, col_next = st.columns([1, 2, 1])
+            with col_prev:
+                if st.button("◀ 前へ", disabled=(page == 0), use_container_width=True):
+                    st.session_state["list_page"] = page - 1
+                    st.rerun()
+            with col_info:
+                st.markdown(f"<div style='text-align:center;padding-top:8px;'>{page+1} / {total_pages} ページ</div>", unsafe_allow_html=True)
+            with col_next:
+                if st.button("次へ ▶", disabled=(page >= total_pages - 1), use_container_width=True):
+                    st.session_state["list_page"] = page + 1
+                    st.rerun()
 
 
 # ---- タブ5: バトルクイズ ----
