@@ -198,22 +198,58 @@ with tab_list:
     if not words:
         st.info("まだ単語が保存されていません。")
     else:
-        for i, w in enumerate(words):
+        LEVEL_ORDER = {"初級": 0, "中級": 1, "上級": 2, "": 3}
+        col_f, col_s = st.columns(2)
+        with col_f:
+            filter_level = st.selectbox("レベルで絞り込み", ["全て", "初級", "中級", "上級", "なし"], key="list_filter")
+        with col_s:
+            sort_by = st.selectbox("並び順", ["登録順", "レベル順（初級→上級）", "レベル順（上級→初級）", "復習回数が少ない順"], key="list_sort")
+
+        display_words = list(words)
+
+        # 絞り込み
+        if filter_level == "なし":
+            display_words = [w for w in display_words if not w.get("level")]
+        elif filter_level != "全て":
+            display_words = [w for w in display_words if w.get("level") == filter_level]
+
+        # 並び替え
+        if sort_by == "レベル順（初級→上級）":
+            display_words.sort(key=lambda w: LEVEL_ORDER.get(w.get("level", ""), 3))
+        elif sort_by == "レベル順（上級→初級）":
+            display_words.sort(key=lambda w: -LEVEL_ORDER.get(w.get("level", ""), 3))
+        elif sort_by == "復習回数が少ない順":
+            display_words.sort(key=lambda w: w.get("review_count", 0))
+
+        st.caption(f"{len(display_words)} 語表示中（全 {len(words)} 語）")
+
+        for i, w in enumerate(display_words):
+            # 意味と例文を分離
+            def_parts = w["definition"].split("/", 1)
+            meaning = def_parts[0].strip()
+            example = def_parts[1].strip() if len(def_parts) > 1 else ""
+
             level_tag = f"[{w['level']}] " if w.get("level") else ""
-            with st.expander(f"{level_tag}{w['word']}  —  {w['definition'][:40]}"):
-                st.markdown(f"**単語:** {w['word']}")
-                if w.get("pronunciation"):
-                    st.markdown(f"**発音:** {w['pronunciation']}")
-                info_parts = [p for p in [w.get("pos", ""), w.get("verb_type", "")] if p]
-                if info_parts:
-                    st.markdown(f"**品詞:** {'　'.join(info_parts)}")
-                st.markdown(f"**意味:** {w['definition']}")
-                if w.get("level"):
-                    st.markdown(f"**レベル:** {w['level']}")
-                st.markdown(f"**復習回数:** {w.get('review_count', 0)}")
-                if st.button("削除", key=f"del_{i}"):
-                    delete_word(i)
-                    st.rerun()
+            with st.expander(f"{level_tag}{w['word']}  —  {meaning[:40]}"):
+                col_a, col_b = st.columns([3, 1])
+                with col_a:
+                    st.markdown(f"**単語・熟語:** {w['word']}")
+                    if w.get("pronunciation"):
+                        st.markdown(f"**発音:** `{w['pronunciation']}`")
+                    info_parts = [p for p in [w.get("pos", ""), w.get("verb_type", "")] if p]
+                    if info_parts:
+                        st.markdown(f"**品詞:** {'　'.join(info_parts)}")
+                    st.markdown(f"**意味:** {meaning}")
+                    if example:
+                        st.markdown(f"**例文:** *{example}*")
+                    if w.get("level"):
+                        st.markdown(f"**レベル:** {w['level']}")
+                    st.markdown(f"**復習回数:** {w.get('review_count', 0)}")
+                with col_b:
+                    orig_idx = words.index(w)
+                    if st.button("削除", key=f"del_{i}"):
+                        delete_word(orig_idx)
+                        st.rerun()
 
 
 # ---- タブ5: バトルクイズ ----
