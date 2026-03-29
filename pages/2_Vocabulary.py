@@ -361,7 +361,7 @@ with tab_battle:
     # ── フェーズ: コース選択 ──────────────────────────────────
     if phase == "select":
         st.subheader("⚔️ バトルクイズ")
-        st.markdown("4体のモンスターを倒せ！各5問、合計20問。HPを守り切ってクリアしよう。")
+        st.markdown("4体のモンスターを倒せ！合計20問。HPを守り切ってクリアしよう。")
 
         course = st.selectbox("コースを選ぶ", COURSE_OPTIONS, key="bq_course_select")
 
