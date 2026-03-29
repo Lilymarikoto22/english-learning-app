@@ -173,16 +173,30 @@ with tab_new:
         generate_btn = st.button("▶ Generate", type="primary", use_container_width=True)
 
     if generate_btn:
-        with st.spinner("Creating dialogue..."):
+        with st.status("Generating dialogue...", expanded=True) as status:
+            st.write("✍️ Step 1／2　Claude がストーリーを執筆中...（10〜20秒）")
             try:
                 data = generate_dialogue(genre=GENRES[genre_label])
                 st.session_state["dialogue_data"] = data
                 st.session_state["dialogue_genre"] = genre_label
-                # clear previous state for this view
                 st.session_state.pop("new_translation", None)
                 st.session_state.pop("new_audio", None)
+                st.write(f"✅ フレーズ「{data['phrase']}」のストーリー完成！")
             except Exception as e:
                 st.error(f"Failed to generate: {e}")
+                st.stop()
+
+            st.write("🔊 Step 2／2　2つの声で音声を生成中...（10〜20秒）")
+            try:
+                lines = [{"speaker": l["speaker"], "line": l["line"]} for l in data["dialogue"]]
+                audio_bytes = generate_dialogue_audio(lines, speed=1.0)
+                st.session_state["new_audio"] = audio_bytes
+                st.session_state["new_audio_speed"] = 1.0
+                st.write("✅ 音声の準備ができました！")
+            except Exception as e:
+                st.write(f"⚠️ 音声の自動生成に失敗しました（後で手動生成できます）: {e}")
+
+            status.update(label="✅ 完成！ダイアログの準備ができました", state="complete")
 
     if "dialogue_data" not in st.session_state:
         st.info("Select a genre and press **Generate** to start.")

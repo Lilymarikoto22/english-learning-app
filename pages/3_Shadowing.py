@@ -251,22 +251,23 @@ with tab_new:
 
     if st.button("📝 記事を生成", type="primary", disabled=not topic):
         source_label = "TED Talks" if source_type == "ted" else "BBC News"
-        with st.spinner(f"{source_label} を検索中..."):
+        sources = []
+
+        with st.status("記事を準備しています...", expanded=True) as status:
+            st.write(f"📡 Step 1／3　{source_label} を検索中...")
             try:
                 if source_type == "ted":
                     sources = search_ted_talks(topic, max_results=4)
                 else:
                     sources = search_bbc_news(topic, max_results=4)
+                if sources:
+                    st.write(f"✅ {len(sources)} 件の記事が見つかりました")
+                else:
+                    st.write("⚠️ 記事が見つかりませんでした。Claude の知識で生成します")
             except Exception as e:
-                st.error(f"検索エラー: {e}")
-                sources = []
+                st.write(f"⚠️ 検索エラー: {e}")
 
-        if sources:
-            st.success(f"✅ {source_label} の記事 {len(sources)} 件をもとに生成します")
-        else:
-            st.warning(f"{source_label} の記事が見つかりませんでした。Claude の知識をもとに生成します。")
-
-        with st.spinner("Claude が記事を作成中..."):
+            st.write("✍️ Step 2／3　Claude が記事を執筆中...（10〜20秒）")
             try:
                 article = generate_shadowing_article(topic, source_articles=sources or None, source_type=source_type)
                 article["sources"] = sources
@@ -274,19 +275,22 @@ with tab_new:
                 st.session_state["current_article"] = article
                 st.session_state["current_topic"] = topic
                 st.session_state["article_saved"] = False
+                st.write(f"✅ 記事「{article['title']}」完成！")
             except Exception as e:
                 st.error(f"記事の生成に失敗しました: {e}")
                 st.stop()
 
-        # 記事生成直後に 1.0x の音声を自動生成
-        audio_key = f"audio_{article['title'][:20]}"
-        with st.spinner("音声を自動生成中..."):
+            st.write("🔊 Step 3／3　音声を生成中...（10〜20秒）")
+            audio_key = f"audio_{article['title'][:20]}"
             try:
                 audio_bytes = generate_audio(article["text"], speed=1.0)
                 st.session_state[audio_key] = audio_bytes
                 st.session_state[f"speed_cache_{article['title'][:20]}"] = 1.0
+                st.write("✅ 音声の準備ができました！")
             except Exception as e:
-                st.warning(f"音声の自動生成に失敗しました（後で手動生成できます）: {e}")
+                st.write(f"⚠️ 音声の自動生成に失敗しました（後で手動生成できます）: {e}")
+
+            status.update(label="✅ 完成！記事と音声の準備ができました", state="complete")
 
     if "current_article" in st.session_state:
         article = st.session_state["current_article"]
