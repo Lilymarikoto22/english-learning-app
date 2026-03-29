@@ -1,7 +1,5 @@
 import os
 import streamlit as st
-from utils.auth import require_password
-require_password()
 from utils.claude_client import generate_shadowing_article, extract_business_vocab, translate_article, get_api_key
 from utils.tts import generate_audio
 from utils.article_store import save_article, get_all_articles, delete_article
@@ -9,8 +7,10 @@ from utils.web_search import search_bbc_news, search_ted_talks
 from utils.vocab_store import add_word
 from utils.streak_store import record_activity
 from utils.pet_store import grant_exp, show_pet_notifications
+from utils.auth import require_password
 
 st.set_page_config(page_title="Shadowing", page_icon="🗣️", layout="centered")
+require_password()
 record_activity()
 show_pet_notifications()
 

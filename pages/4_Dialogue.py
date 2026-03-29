@@ -1,15 +1,15 @@
 import os
 import streamlit as st
-from utils.auth import require_password
-require_password()
 from utils.claude_client import generate_dialogue, translate_dialogue, get_api_key
 from utils.tts import generate_dialogue_audio
 from utils.vocab_store import add_word
 from utils.dialogue_store import save_dialogue, get_all_dialogues, delete_dialogue
 from utils.streak_store import record_activity
 from utils.pet_store import grant_exp, show_pet_notifications
+from utils.auth import require_password
 
 st.set_page_config(page_title="Dialogue", page_icon="🎭", layout="centered")
+require_password()
 record_activity()
 show_pet_notifications()
 

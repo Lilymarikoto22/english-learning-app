@@ -1,12 +1,12 @@
 import streamlit as st
-from utils.auth import require_password
-require_password()
 from streamlit_mic_recorder import mic_recorder
 from utils.claude_client import stream_conversation, transcribe_audio, extract_vocab_from_conversation, get_api_key
 from utils.vocab_store import add_word
 from utils.streak_store import record_activity
+from utils.auth import require_password
 
 st.set_page_config(page_title="Conversation", page_icon="💬", layout="centered")
+require_password()
 record_activity()
 
 col_t, col_i = st.columns([4, 1])
