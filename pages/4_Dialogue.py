@@ -204,39 +204,33 @@ with tab_new:
 
     if "dialogue_data" not in st.session_state:
         st.info("Select a genre and press **Generate** to start.")
-        st.stop()
-
-    data = st.session_state["dialogue_data"]
-
-    show_dialogue(data, key_prefix="new_")
-
-    # ── EXP ──
-    st.markdown("---")
-    _exp_key = f"_exp_dialogue_{data['phrase'][:20]}"
-    if not st.session_state.get(_exp_key):
-        if st.button("✅ ダイアログ学習完了！(+20pt)", type="primary", use_container_width=True):
-            grant_exp(20)
-            st.session_state[_exp_key] = True
-            st.rerun()
     else:
-        st.success("🐾 ペットに +20pt あげました！")
+        data = st.session_state["dialogue_data"]
 
-    st.markdown("---")
-    if st.button("💾 Save to Archive", key="new_save_archive"):
-        save_dialogue(data, genre=st.session_state.get("dialogue_genre", ""))
-        st.success("Saved to Archive!")
+        show_dialogue(data, key_prefix="new_")
+
+        # ── EXP ──
+        st.markdown("---")
+        _exp_key = f"_exp_dialogue_{data['phrase'][:20]}"
+        if not st.session_state.get(_exp_key):
+            if st.button("✅ ダイアログ学習完了！(+20pt)", type="primary", use_container_width=True):
+                grant_exp(20)
+                st.session_state[_exp_key] = True
+                st.rerun()
+        else:
+            st.success("🐾 ペットに +20pt あげました！")
+
+        st.markdown("---")
+        if st.button("💾 Save to Archive", key="new_save_archive"):
+            save_dialogue(data, genre=st.session_state.get("dialogue_genre", ""))
+            st.success("Saved to Archive!")
 
 
 # ==============================
 # Tab 2: Archive
 # ==============================
 with tab_archive:
-    try:
-        dialogues = get_all_dialogues()
-        st.caption(f"[DEBUG] 取得件数: {len(dialogues)}")
-    except Exception as e:
-        st.error(f"[DEBUG] エラー: {e}")
-        dialogues = []
+    dialogues = get_all_dialogues()
 
     if not dialogues:
         st.info("No saved dialogues yet. Generate one and press **Save to Archive**.")
