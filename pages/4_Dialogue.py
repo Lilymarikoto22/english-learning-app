@@ -231,7 +231,12 @@ with tab_new:
 # Tab 2: Archive
 # ==============================
 with tab_archive:
-    dialogues = get_all_dialogues()
+    try:
+        dialogues = get_all_dialogues()
+        st.caption(f"[DEBUG] 取得件数: {len(dialogues)}")
+    except Exception as e:
+        st.error(f"[DEBUG] エラー: {e}")
+        dialogues = []
 
     if not dialogues:
         st.info("No saved dialogues yet. Generate one and press **Save to Archive**.")
